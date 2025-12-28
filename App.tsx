@@ -1,14 +1,14 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Share2, Calendar, Users, 
-  Image as ImageIcon, Radio, Clock, 
-  Instagram, Facebook, Settings, X, LogIn, ExternalLink, SkipBack, SkipForward, Shuffle, Music,
-  MessageSquare, Send, Crown, Mail, Key, ShieldCheck, Twitter, Youtube, CheckCircle2, UserPlus,
-  LayoutDashboard, Megaphone, List, Trash2, Palette, Type, Monitor
+  Radio, Clock, Settings, X, Send, 
+  LayoutDashboard, Megaphone, List, Trash2, Palette, Monitor, Music,
+  MessageSquare
 } from 'lucide-react';
 import { fetchNowPlaying } from './services/azuracast';
 import { AzuraCastNowPlaying, DJ, EventListing, GalleryItem, ChatMessage } from './types';
-import { STATION_NAME as DEFAULT_NAME, STATION_LOGO as DEFAULT_LOGO, DJS as DEFAULT_DJS, EVENTS as DEFAULT_EVENTS, GALLERY as DEFAULT_GALLERY, INITIAL_CHAT, STATION_SOCIALS } from './constants';
+import { STATION_NAME as DEFAULT_NAME, STATION_LOGO as DEFAULT_LOGO, DJS as DEFAULT_DJS, EVENTS as DEFAULT_EVENTS, GALLERY as DEFAULT_GALLERY, INITIAL_CHAT } from './constants';
 
 interface UserAccount {
   email: string;
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   // --- Security & Admin State ---
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminPasscode, setAdminPasscode] = useState(() => localStorage.getItem('kingz_admin_pass') || 'KINGZ_ADMIN_2024');
+  const [adminPasscode] = useState(() => localStorage.getItem('kingz_admin_pass') || 'KINGZ_ADMIN_2024');
 
   // --- Auth State ---
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string; isVerified: boolean } | null>(() => {
@@ -39,9 +39,6 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('kingz_mailing_list');
     return saved ? JSON.parse(saved) : [];
   });
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetType, setResetType] = useState<'listener' | 'dj'>('listener');
-  const [isResetLinkSent, setIsResetLinkSent] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   // --- Station & DJ State ---
@@ -51,10 +48,7 @@ const App: React.FC = () => {
   
   const [bgConfig, setBgConfig] = useState(() => {
     const saved = localStorage.getItem('bg_config');
-    const defaultImg = "https://www.dropbox.com/scl/fi/whatsapp-image-2025-12-27.jpeg?rlkey=hidden&raw=1";
-    // We attempt to fix the dropbox preview link to a raw link if the user provides the preview one.
     const userProvidedUrl = "https://www.dropbox.com/preview/DREAM%20TEAM%20PRODUCTION/WhatsApp%20Image%202025-12-27%20at%206.23.15%20PM.jpeg?context=file_uploader_preview_file&role=personal";
-    // Replacing dropbox.com with dl.dropboxusercontent.com and removing query params or adding raw=1 is the standard way to get the direct image.
     const rawUrl = userProvidedUrl.replace('www.dropbox.com', 'dl.dropboxusercontent.com').split('?')[0] + '?raw=1';
 
     return saved ? JSON.parse(saved) : { 
@@ -64,9 +58,8 @@ const App: React.FC = () => {
     };
   });
   
-  const [localDjs, setLocalDjs] = useState<DJ[]>(() => JSON.parse(localStorage.getItem('custom_djs') || JSON.stringify(DEFAULT_DJS)));
-  const [localEvents, setLocalEvents] = useState<EventListing[]>(() => JSON.parse(localStorage.getItem('custom_events') || JSON.stringify(DEFAULT_EVENTS)));
-  const [localGallery, setLocalGallery] = useState<GalleryItem[]>(() => JSON.parse(localStorage.getItem('custom_gallery') || JSON.stringify(DEFAULT_GALLERY)));
+  const [localDjs] = useState<DJ[]>(() => JSON.parse(localStorage.getItem('custom_djs') || JSON.stringify(DEFAULT_DJS)));
+  const [localEvents] = useState<EventListing[]>(() => JSON.parse(localStorage.getItem('custom_events') || JSON.stringify(DEFAULT_EVENTS)));
 
   // --- Chat State ---
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
@@ -82,12 +75,10 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
-  const [isShuffle, setIsShuffle] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'djs' | 'events' | 'chat'>('home');
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showLogoDropdown, setShowLogoDropdown] = useState(false);
   const [showDJLogin, setShowDJLogin] = useState(false);
-  const [selectedDJProfile, setSelectedDJProfile] = useState<DJ | null>(null);
   const [adminTab, setAdminTab] = useState<'users' | 'mailing' | 'blast' | 'station'>('users');
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -104,9 +95,8 @@ const App: React.FC = () => {
     localStorage.setItem('bg_config', JSON.stringify(bgConfig));
     localStorage.setItem('custom_djs', JSON.stringify(localDjs));
     localStorage.setItem('custom_events', JSON.stringify(localEvents));
-    localStorage.setItem('custom_gallery', JSON.stringify(localGallery));
     localStorage.setItem('kingz_chat', JSON.stringify(chatMessages));
-  }, [currentUser, registeredUsers, mailingList, adminPasscode, stationName, stationLogo, bgConfig, localDjs, localEvents, localGallery, chatMessages]);
+  }, [currentUser, registeredUsers, mailingList, adminPasscode, stationName, stationLogo, bgConfig, localDjs, localEvents, chatMessages]);
 
   // Scroll Chat to Bottom
   useEffect(() => {
@@ -178,12 +168,6 @@ const App: React.FC = () => {
 
   const activeLogo = currentDJ ? currentDJ.logo : (nowPlaying?.now_playing.song.art || stationLogo);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   // --- Interaction Actions ---
   const handleAuthSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -213,15 +197,6 @@ const App: React.FC = () => {
       } else {
         alert("Invalid email or password.");
       }
-    } else if (authMode === 'reset') {
-      const newPass = (formData.get('new_password') as string)?.trim();
-      if (resetType === 'listener') {
-        setRegisteredUsers(registeredUsers.map(u => u.email === resetEmail ? { ...u, pass: newPass } : u));
-      } else {
-        setLocalDjs(localDjs.map(d => d.email === resetEmail ? { ...d, password: newPass } : d));
-      }
-      alert("Password updated!");
-      setAuthMode('login');
     }
   };
 
@@ -295,9 +270,20 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white text-center font-inter">
         <div className="w-full max-w-lg glass border border-yellow-500/30 rounded-[3rem] p-10">
-          <img src={stationLogo} className="w-32 h-32 rounded-full border-4 border-yellow-500 mx-auto mb-6 object-cover" />
+          <img src={stationLogo} className="w-32 h-32 rounded-full border-4 border-yellow-500 mx-auto mb-6 object-cover" alt="Station Logo" />
           <h1 className="text-5xl font-oswald font-black uppercase italic mb-8">REMIX KINGZ</h1>
-          {authMode === 'verify' ? (
+          
+          {showDJLogin ? (
+            <form onSubmit={handleDJLogin} className="space-y-6 text-left animate-fade-in">
+              <h2 className="text-3xl font-oswald font-bold uppercase text-yellow-500 text-center mb-6">KINGZ DJ LOGIN</h2>
+              <div className="space-y-4">
+                <input required name="dj_user" placeholder="Resident DJ Name" className="w-full bg-black/50 border border-white/10 p-4 rounded-xl font-bold" />
+                <input required name="dj_pass" type="password" placeholder="Access Key" className="w-full bg-black/50 border border-white/10 p-4 rounded-xl font-bold" />
+              </div>
+              <button type="submit" className="w-full py-5 bg-yellow-600 rounded-2xl font-black text-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">AUTHENTICATE</button>
+              <button type="button" onClick={() => setShowDJLogin(false)} className="w-full text-xs text-gray-500 uppercase font-bold text-center">Back to Listener Access</button>
+            </form>
+          ) : authMode === 'verify' ? (
             <div className="space-y-6">
               <h3 className="text-2xl font-oswald text-yellow-500">VERIFY EMAIL</h3>
               <p className="text-sm text-gray-400">Waiting for activation link on {unverifiedEmail}</p>
@@ -315,7 +301,7 @@ const App: React.FC = () => {
                 <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-xs text-yellow-500 font-black">
                    {authMode === 'login' ? "JOIN US" : "BACK TO LOGIN"}
                 </button>
-                <button type="button" onClick={() => setShowDJLogin(true)} className="text-[10px] text-gray-500 uppercase">DJ Access</button>
+                <button type="button" onClick={() => setShowDJLogin(true)} className="text-[10px] text-gray-500 uppercase font-black tracking-widest hover:text-yellow-500 transition-colors">DJ Access</button>
               </div>
             </form>
           )}
@@ -342,15 +328,15 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-50 glass px-6 py-4 flex items-center justify-between border-b border-yellow-500/20 backdrop-blur-3xl">
         <div className="flex items-center gap-4 relative" ref={dropdownRef}>
           <div className="relative cursor-pointer" onClick={() => setShowLogoDropdown(!showLogoDropdown)}>
-            <img src={stationLogo} className="w-12 h-12 rounded-full border-2 border-yellow-600 shadow-xl object-cover" />
+            <img src={stationLogo} className="w-12 h-12 rounded-full border-2 border-yellow-600 shadow-xl object-cover" alt="Station logo" />
             <div className="absolute -top-1 -right-1 text-[10px]">👑</div>
           </div>
           {showLogoDropdown && (
             <div className="absolute top-16 left-0 w-72 glass border border-yellow-500/30 rounded-3xl overflow-hidden shadow-2xl z-[100] p-2 animate-slide-in-top backdrop-blur-3xl">
-              <button onClick={() => { if(isAdmin) setShowAdminPanel(true); else setShowAdminLogin(true); setShowLogoDropdown(false); }} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-yellow-500/10 rounded-2xl transition-all">
+              <button onClick={() => { if(isAdmin) setShowAdminPanel(true); else setShowAdminLogin(true); setShowLogoDropdown(false); }} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-yellow-500/10 rounded-2xl transition-all text-left">
                 <Settings size={18} className="text-yellow-500" /> <span className="text-xs font-bold uppercase">Master Console</span>
               </button>
-              <button onClick={() => setCurrentUser(null)} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-red-500/10 text-red-400 rounded-2xl transition-all">
+              <button onClick={() => setCurrentUser(null)} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-red-500/10 text-red-400 rounded-2xl transition-all text-left">
                 <X size={18} /> <span className="text-xs font-bold uppercase">Sign Out</span>
               </button>
             </div>
@@ -389,7 +375,6 @@ const App: React.FC = () => {
               {adminTab === 'station' && (
                 <div className="max-w-4xl space-y-12 animate-fade-in">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    {/* Branding Section */}
                     <div className="space-y-6">
                       <h3 className="text-2xl font-oswald font-bold text-yellow-500 uppercase flex items-center gap-3">
                         <Monitor size={20}/> Station Branding
@@ -415,7 +400,6 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Background Control Section */}
                     <div className="space-y-6">
                       <h3 className="text-2xl font-oswald font-bold text-yellow-500 uppercase flex items-center gap-3">
                         <Palette size={20}/> Background & Colors
@@ -466,7 +450,6 @@ const App: React.FC = () => {
                             onChange={(e) => setBgConfig({...bgConfig, brightness: Number(e.target.value)})}
                             className="w-full accent-yellow-500"
                           />
-                          <p className="text-[9px] text-gray-500 italic">Lowering brightness helps the text pop against graphics.</p>
                         </div>
                       </div>
                     </div>
@@ -523,10 +506,10 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[150] bg-black/95 flex items-center justify-center p-6 backdrop-blur-xl">
           <div className="w-full max-w-md glass border border-red-500/30 rounded-[3rem] p-10 text-center">
             <h2 className="text-4xl font-oswald font-bold uppercase text-red-500 mb-8">ADMIN AUTH</h2>
-            <form onSubmit={handleAdminLogin} className="space-y-6">
+            <form onSubmit={handleAdminLogin} className="space-y-6 text-left">
               <input required name="admin_pass" type="password" placeholder="Passcode" className="w-full bg-black/50 border border-white/10 p-4 rounded-xl text-center text-xl font-bold" />
               <button type="submit" className="w-full py-4 bg-red-600 rounded-xl font-black text-black">UNLOCK CONSOLE</button>
-              <button type="button" onClick={() => setShowAdminLogin(false)} className="text-xs text-gray-500 uppercase mt-4">Cancel</button>
+              <button type="button" onClick={() => setShowAdminLogin(false)} className="w-full text-xs text-gray-500 uppercase mt-4 text-center">Cancel</button>
             </form>
           </div>
         </div>
@@ -538,7 +521,7 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-fade-in-up">
             <div className="lg:col-span-8 space-y-12">
               <div className="relative aspect-video rounded-[3rem] overflow-hidden border-4 border-yellow-600/30 shadow-2xl group bg-black/60">
-                <img src={activeLogo} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-1000" />
+                <img src={activeLogo} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-1000" alt="Current Deck" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                 <div className="absolute bottom-12 left-12">
                   <h3 className="text-2xl font-bold text-yellow-500 uppercase tracking-widest mb-2">{nowPlaying?.now_playing.song.artist || stationName}</h3>
@@ -555,8 +538,8 @@ const App: React.FC = () => {
               <h3 className="text-2xl font-oswald font-bold uppercase text-yellow-500 border-b border-white/10 pb-4">RESIDENT KINGZ</h3>
               <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {localDjs.slice(0, 10).map(dj => (
-                  <div key={dj.id} onClick={() => setSelectedDJProfile(dj)} className="flex items-center gap-4 group cursor-pointer hover:translate-x-2 transition-all">
-                    <img src={dj.logo} className="w-14 h-14 rounded-2xl object-cover border border-white/10 group-hover:border-yellow-500" />
+                  <div key={dj.id} className="flex items-center gap-4 group cursor-pointer hover:translate-x-2 transition-all">
+                    <img src={dj.logo} className="w-14 h-14 rounded-2xl object-cover border border-white/10 group-hover:border-yellow-500" alt={dj.name} />
                     <div><p className="font-bold uppercase text-lg group-hover:text-yellow-500 transition-colors">{dj.name}</p><p className="text-[10px] text-gray-500 font-black uppercase">Resident</p></div>
                   </div>
                 ))}
@@ -569,7 +552,7 @@ const App: React.FC = () => {
           <div className="max-w-3xl mx-auto h-[70vh] flex flex-col glass rounded-[3rem] p-6 border border-yellow-500/20 shadow-2xl backdrop-blur-3xl">
              <div className="flex-1 overflow-y-auto space-y-4 pr-4 custom-scrollbar">
                {chatMessages.map(m => (
-                 <div key={m.id} className={`flex flex-col ${m.userEmail === currentUser.email ? 'items-end' : 'items-start'}`}>
+                 <div key={m.id} className={`flex flex-col ${m.userEmail === currentUser?.email ? 'items-end' : 'items-start'}`}>
                    <span className="text-[9px] text-gray-500 font-black mb-1 px-2 uppercase tracking-widest">{m.userName}</span>
                    <div className={`px-5 py-3 rounded-3xl text-sm font-medium ${m.isDJ ? 'bg-yellow-600 text-black' : 'bg-white/10'}`}>{m.text}</div>
                  </div>
@@ -578,7 +561,7 @@ const App: React.FC = () => {
              </div>
              <form onSubmit={handleSendMessage} className="mt-6 flex gap-4 p-2 bg-black/40 rounded-full border border-white/10">
                <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Message the deck..." className="flex-1 bg-transparent px-6 py-3 outline-none" />
-               <button className="w-12 h-12 bg-yellow-600 rounded-full flex items-center justify-center text-black shadow-lg"><Send size={20} fill="currentColor"/></button>
+               <button type="submit" className="w-12 h-12 bg-yellow-600 rounded-full flex items-center justify-center text-black shadow-lg"><Send size={20} fill="currentColor"/></button>
              </form>
           </div>
         )}
@@ -586,8 +569,8 @@ const App: React.FC = () => {
         {activeTab === 'djs' && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 animate-fade-in-up">
             {localDjs.map(dj => (
-              <div key={dj.id} onClick={() => setSelectedDJProfile(dj)} className="glass p-6 rounded-[2.5rem] group cursor-pointer hover:-translate-y-2 transition-all">
-                <img src={dj.logo} className="aspect-square rounded-[2rem] object-cover mb-4 group-hover:scale-105 transition-all" />
+              <div key={dj.id} className="glass p-6 rounded-[2.5rem] group cursor-pointer hover:-translate-y-2 transition-all">
+                <img src={dj.logo} className="aspect-square rounded-[2rem] object-cover mb-4 group-hover:scale-105 transition-all" alt={dj.name} />
                 <h4 className="font-oswald text-xl font-bold text-center uppercase group-hover:text-yellow-500">{dj.name}</h4>
               </div>
             ))}
@@ -598,7 +581,7 @@ const App: React.FC = () => {
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 animate-fade-in-up">
              {localEvents.map(event => (
                <div key={event.id} className="glass rounded-[3rem] overflow-hidden group hover:border-yellow-500/50 transition-all">
-                 <img src={event.flyer} className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-all" />
+                 <img src={event.flyer} className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-all" alt={event.title} />
                  <div className="p-8"><h3 className="text-2xl font-oswald font-bold uppercase">{event.title}</h3><p className="text-xs text-yellow-500 font-black mt-2">{event.date} @ {event.location}</p></div>
                </div>
              ))}
