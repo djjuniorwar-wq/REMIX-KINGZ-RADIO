@@ -1,0 +1,7 @@
+{
+  "name": "Remix Kings Radio",
+  "description": "A high-performance radio station web application for Remix Kings Radio featuring AzuraCast integration, DJ profiles, event listings, and a live audio player.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
